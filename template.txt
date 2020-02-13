@@ -1,0 +1,67 @@
+fps 60
+#This will work best if you have Google Chrome open on the top left corner of the screen
+frame 1
+mousepos 0,0
+frame 10
+mousepos 100,100
+frame 20
+mousepos 378,79
+frame 21
+{Click}
+frame 22-31
+0
+# 10 zeros
+frame 32
+mousepos 0,0
+frame 33
+mousepos 10,10
+frame 34
+mousepos 20,20
+frame 35
+mousepos 30,30
+frame 36
+mousepos 40,40
+frame 37
+mousepos 50,50
+frame 38
+mousepos 60,60
+frame 39
+mousepos 70,70
+frame 40
+^a
+#Delete 0s
+frame 41
++h
+frame 42
+e
+frame 43-44,50
+l
+frame 45,48
+o
+frame 46
+{Space}
+frame 47
++w
+frame 49
+r
+frame 51
+d
+frame 52
+{!}
+frame 53
+{Enter}
+#Search "Hello World!"
+frame 54
+mousepos 200,200
+frame 55
+mousepos 300,200
+frame 56
+mousepos 300,300
+frame 57
+mousepos 200,300
+frame 58
+mousepos 200,200
+frame 59
+mousepos 100,100
+frame 60
+mousepos 0,0
