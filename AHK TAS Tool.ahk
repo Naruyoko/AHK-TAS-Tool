@@ -17,7 +17,7 @@ Gui, 1:Add, Text,, Input file content:
 Gui, 1:Add, Button, Default yp xp+240 w80 gLoadFile, Load file (^O)
 Gui, 1:Add, Edit, xm w320 r4 ReadOnly -Wrap vCtrl_InputFileContent
 Gui, 1:Add, Button, w60 vPlayBackButton gPlayBack, Play (^R)
-Gui, 1:Add, Button, yp xp+60 w70 vStopPlayBackButton gStopPlayBack, Stop (+Esc)
+Gui, 1:Add, Button, yp xp+60 w70 vStopPlayBackButton gStopPlayBack, Stop (Esc)
 Gui, 1:Add, Text, yp xp+70 w60, First frame:
 Gui, 1:Add, Edit, yp xp+60 w30 r1 Right vCtrl_FirstFrame, 1
 Gui, 1:Add, Text, xm , Frame:
@@ -63,7 +63,7 @@ if (Ctrl_HotKeyEnabled)
   gosub PlayBack
 return
 
-+Esc::
+Esc::
 gosub StopPlayBack
 return
 
@@ -168,13 +168,19 @@ GetTimeElapsed() ;In seconds
 
 UpdateTASLength()
 {
-  local ReadLineNum
+  local ReadLineNum,arguments,dashIndex,line
   ReadLineNum:=InputFileLines.length()
   while (ReadLineNum>0)
   {
-    if (GetCommand(InputFileLines[ReadLineNum])="frame")
+    line:=InputFileLines[ReadLineNum]
+    if (GetCommand(line)="frame")
     {
-      TASLength:=GetArguments(InputFileLines[ReadLineNum])[1]
+      arguments:=GetArguments(line)
+      dashIndex:=InStr(arguments[arguments.length()],"-")
+      if (dashIndex)
+        TASLength:=SubStr(arguments[arguments.length()],dashIndex+1)
+      else
+        TASLength:=arguments[arguments.length()]
       TASLength+=0
       break
     }
@@ -195,8 +201,7 @@ GetStartLineOfFrame(frame)
       i:=1
       while (i<=arguments.length()){
         dashIndex:=InStr(arguments[i],"-")
-        ;MsgBox % ReadLineNum "`n" InputFileLines[ReadLineNum] "`n" i "`n" arguments[i] "`n" dashIndex
-        if ((dashIndex!=0&&SubStr(arguments[i],0,dashIndex)<=frame&&frame<=SubStr(arguments[i],dashIndex+1))||(dashIndex=0&&arguments[i]=frame))
+        if ((dashIndex!=0&&SubStr(arguments[i],1,dashIndex-1)<=frame&&frame<=SubStr(arguments[i],dashIndex+1))||(dashIndex=0&&arguments[i]=frame))
           return ReadLineNum
         i+=1
       }
@@ -251,7 +256,7 @@ ExecFrame(frame)
     if (command="mousePos")
     {
       if (arguments.length()>=2)
-        MouseMove, arguments[1]+0, arguments[2]+0
+        MouseMove, arguments[1]+0, arguments[2]+0, 0
     }
     else if (command="fps")
     {
