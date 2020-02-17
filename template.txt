@@ -65,3 +65,13 @@ frame 59
 mousepos 100,100
 frame 60
 mousepos 0,0
+frame 61
+mousepos 378,79
+{Click}
+frame *i:62:20:10:%i%-%i+2%
+# *[var]:[start]:[numloop]:[increment]:[template]
+a
+frame *i:62:20:10:%i+3%
+b
+frame *i:300:5:50:*j:%i%:5:5:%j%
+c
