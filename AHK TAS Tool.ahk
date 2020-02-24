@@ -19,6 +19,7 @@ SetControlDelay, -1
 
 NameText:="AHK TAS Tool"
 ,IsPlaying:=0
+,IsFrameAdvance:=0
 ,DoneFrameNum:=0
 ,TASLength:=0
 ,TASFPS:=60
@@ -31,13 +32,14 @@ Gui, 1:Add, Button, Default yp xp+240 w80 gLoadFile, Load file (^O)
 Gui, 1:Add, Edit, xm w320 r4 ReadOnly -Wrap vCtrl_InputFileContent
 Gui, 1:Add, Button, w60 vPlayBackButton gPlayBack, Play (^R)
 Gui, 1:Add, Button, yp xp+60 w70 vStopPlayBackButton gStopPlayBack, Stop (Esc)
-Gui, 1:Add, Text, yp xp+70 w60, First frame:
-Gui, 1:Add, Edit, yp xp+60 w30 r1 Right vCtrl_FirstFrame, 1
+Gui, 1:Add, Button, yp xp+70 w70 vFrameAdvanceButton gFrameAdvance, Frame (^F)
 Gui, 1:Add, Text, xm , Frame:
 Gui, 1:Add, Edit, yp xp+40 w80 r1 ReadOnly Right vCtrl_DoneFrameNum
-Gui, 1:Add, Text, yp xp+90 w50 vCtrl_TASFPS, xx FPS
-Gui, 1:Add, Text, yp xp+50 w40 cRed vCtrl_ProcessedFrames, +xxF
-Gui, 1:Add, Checkbox, checked yp-20 xp+50 w90 Right vCtrl_HotKeyEnabled, Use hot key
+Gui, 1:Add, Text, yp xp+100 w60 vCtrl_TASFPS, xx FPS
+Gui, 1:Add, Text, xm w60, First frame:
+Gui, 1:Add, Edit, yp xp+60 w40 r1 Right vCtrl_FirstFrame, 1
+Gui, 1:Add, Text, yp xp+80 w60 vCtrl_ProcessedFrames, +xxF
+Gui, 1:Add, Checkbox, checked yp-50 xp+80 w90 Right vCtrl_HotKeyEnabled, Use hot key
 Gui, 1:Add, Checkbox, checked w90 Right vCtrl_HideWindow, Hide window
 Gui, 1:Show, NoActivate, %NameText%
 GetClientSize(hGui, temp)
@@ -80,6 +82,11 @@ Esc::
   gosub StopPlayBack
 return
 
+^f::
+  if (Ctrl_HotKeyEnabled)
+    gosub FrameAdvance
+return
+
 LoadFile:
   FileSelectFile, InputFileName,
   FileRead, InputFileContent, %InputFileName%
@@ -90,6 +97,7 @@ LoadFile:
     ExpandLines()
     UpdateTASLength()
     UpdateTASConfiguration()
+    PreprocessStartLineOfFrame()
   }Else{
     UpdateText("Ctrl_InputFileContent", "File read failed!")
     TASLength:=0
@@ -249,9 +257,13 @@ Update:
   UpdateText("Ctrl_DoneFrameNum",DoneFrameNum "/" TASLength)
   if (CanRun=1){
     GuiControl, Enable, PlayBackButton
+    GuiControl, Enable, FrameAdvanceButton
   }else{
     GuiControl, Disable, PlayBackButton
+    GuiControl, Disable, FrameAdvanceButton
   }if (IsPlaying=1){
+    GuiControl, Disable, PlayBackButton
+    GuiControl, Disable, FrameAdvanceButton
     GuiControl, Enable, StopPlayBackButton
   }else{
     GuiControl, Disable, StopPlayBackButton
@@ -263,6 +275,8 @@ Update:
       if (DoneFrameNum<=TASLength)
         ExecFrame(DoneFrameNum)
       ProcessedFrames+=1
+      If (IsFrameAdvance=1)
+        gosub StopPlayBack
     }
     if (DoneFrameNum>TASLength)
       gosub StopPlayBack
@@ -287,20 +301,39 @@ UpdateText(ControlID, NewText){
 }
 
 PlayBack:
+  if (IsPlaying=1||CanRun=0)
+    return
   DoneFrameNum:=Ctrl_FirstFrame-1
   if (CanRun=1){
     DllCall("QueryPerformanceFrequency", "Int64*",IsPlaying)
     DllCall("QueryPerformanceCounter", "Int64*",StartTime)
     StartTime-=IsPlaying*Ctrl_FirstFrame/TASFPS
     IsPlaying:=1
+    IsFrameAdvance:=0
     if (Ctrl_HideWindow)
       WinHide, %NameText%
   }
 return
 
 StopPlayBack:
+  if (IsPlaying=0)
+    return
   IsPlaying:=0
   WinShow, %NameText%
+  UpdateText("Ctrl_FirstFrame",DoneFrameNum+1)
+return
+
+FrameAdvance:
+  if (IsPlaying=1||CanRun=0)
+    return
+  DoneFrameNum:=Ctrl_FirstFrame-1
+  if (CanRun=1){
+    DllCall("QueryPerformanceFrequency", "Int64*",IsPlaying)
+    DllCall("QueryPerformanceCounter", "Int64*",StartTime)
+    StartTime-=IsPlaying*Ctrl_FirstFrame/TASFPS
+    IsPlaying:=1
+    IsFrameAdvance:=1
+  }
 return
 
 GetTimeElapsed(){ ;In seconds
@@ -358,9 +391,47 @@ UpdateTASLength(){
   return
 }
 
+PreprocessStartLineOfFrame(){
+  local line, command, arguments
+  local ReadLineNum:=1
+  local ReadArgumentNum
+  local temp,temp2,dashIndex
+  StartLineOfFrame:=[]
+  temp:=1
+  while (temp<=TASLength){
+    StartLineOfFrame.push(0)
+    temp+=1
+  }
+  while (ReadLineNum<=InputFileLines.length()){
+    line:=InputFileLines[ReadLineNum]
+    command:=GetCommand(line)
+    ,arguments:=GetArguments(line)
+    if (command="frame"){
+      ReadArgumentNum:=1
+      while (ReadArgumentNum<=arguments.length()){
+        dashIndex:=InStr(arguments[ReadArgumentNum],"-")
+        if (dashIndex=0){
+          if (StartLineOfFrame[arguments[ReadArgumentNum]]=0)
+            StartLineOfFrame[arguments[ReadArgumentNum]]:=ReadLineNum
+        }else{
+          temp:=SubStr(arguments[ReadArgumentNum],1,dashIndex-1)
+          while (temp<=SubStr(arguments[ReadArgumentNum],dashIndex+1)){
+            if (StartLineOfFrame[temp]=0)
+              StartLineOfFrame[temp]:=ReadLineNum
+            temp+=1
+          }
+        }
+        ReadArgumentNum+=1
+      }
+    }
+    ReadLineNum+=1
+  }
+}
+
 GetStartLineOfFrame(frame){
   local ReadLineNum:=1
   local arguments,i,dashIndex
+  return StartLineOfFrame[frame]
   while (ReadLineNum<=InputFileLines.length()){
     if (GetCommand(InputFileLines[ReadLineNum])="frame"){
       arguments:=GetArguments(InputFileLines[ReadLineNum])
