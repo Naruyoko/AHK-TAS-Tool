@@ -259,7 +259,6 @@ PercentMath(expression,ByRef variables){
 
 Update:
   Gui, 1:Submit, NoHide
-  CoordMode, Mouse, Screen
   UpdateText("Ctrl_DoneFrameNum",DoneFrameNum "/" TASLength)
   if (CanRun=1){
     GuiControl, Enable, PlayBackButton
@@ -354,6 +353,7 @@ UpdateTASConfiguration(){
   TASFPS:=60
   MouseScale:=[1,1]
   MouseOffset:=[0,0]
+  CoordMode, Mouse, Screen
   while (ReadLineNum<=InputFileLines.length()){
     line:=InputFileLines[ReadLineNum]
     command:=GetCommand(line)
@@ -369,6 +369,15 @@ UpdateTASConfiguration(){
       MouseOffset:=[arguments[1],arguments[2]]
       MouseOffset[1]+=0
       MouseOffset[2]+=0
+    }else if (command="coordMode"){
+      local mode
+      StringLower, mode, % arguments[1]
+      if (mode="screen"||mode="scr"||mode="s")
+        CoordMode, Mouse, Screen
+      else if (mode="relative"||mode="rel"||mode="r"||mode="window")
+        CoordMode, Mouse, Relative
+      else if (mode="client"||mode=="c")
+        CoordMode, Mouse, Client
     }
     ReadLineNum+=1
   }

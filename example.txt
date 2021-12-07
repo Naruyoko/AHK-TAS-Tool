@@ -1,4 +1,5 @@
 fps 60
+coordMode relative
 #This is a comment
 frame 1
 mousepos 0,0
