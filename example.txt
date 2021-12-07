@@ -1,5 +1,5 @@
 fps 60
-#This will work best if you have Google Chrome open on the top left corner of the screen
+#This is a comment
 frame 1
 mousepos 0,0
 frame 10

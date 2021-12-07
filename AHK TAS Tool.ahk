@@ -31,7 +31,7 @@ Gui, 1:Add, Text,, Input file content:
 Gui, 1:Add, Button, Default yp xp+240 w80 gLoadFile, Load file (^O)
 Gui, 1:Add, Edit, xm w320 r4 ReadOnly -Wrap vCtrl_InputFileContent
 Gui, 1:Add, Button, w60 vPlayBackButton gPlayBack, Play (^R)
-Gui, 1:Add, Button, yp xp+60 w70 vStopPlayBackButton gStopPlayBack, Stop (Esc)
+Gui, 1:Add, Button, yp xp+60 w70 vStopPlayBackButton gStopPlayBack, Reset (Esc)
 Gui, 1:Add, Button, yp xp+70 w70 vFrameAdvanceButton gFrameAdvance, Frame (^F)
 Gui, 1:Add, Text, xm , Frame:
 Gui, 1:Add, Edit, yp xp+40 w80 r1 ReadOnly Right vCtrl_DoneFrameNum
@@ -68,21 +68,27 @@ GetClientSize(hWnd, ByRef w := "", ByRef h := ""){
 GuiClose:
 ExitApp
 
-^o::
+$^o::
   if (Ctrl_HotKeyEnabled)
     gosub LoadFile
 return
 
-^r::
+$^r::
   if (Ctrl_HotKeyEnabled)
     gosub PlayBack
 return
 
-Esc::
-  gosub StopPlayBack
+$Esc::
+  if (IsPlaying=1){
+    gosub StopPlayBack
+  }else if (Ctrl_HotKeyEnabled&&Ctrl_FirstFrame>1){
+    UpdateText("Ctrl_FirstFrame",1)
+  }else{
+    Send {Esc}
+  }
 return
 
-^f::
+$^f::
   if (Ctrl_HotKeyEnabled)
     gosub FrameAdvance
 return
@@ -264,9 +270,6 @@ Update:
   }if (IsPlaying=1){
     GuiControl, Disable, PlayBackButton
     GuiControl, Disable, FrameAdvanceButton
-    GuiControl, Enable, StopPlayBackButton
-  }else{
-    GuiControl, Disable, StopPlayBackButton
   }
   If (IsPlaying=1){
     ProcessedFrames:=0
@@ -312,6 +315,7 @@ PlayBack:
     IsFrameAdvance:=0
     if (Ctrl_HideWindow)
       WinHide, %NameText%
+    GuiControl,, StopPlayBackButton, Stop (Esc)
   }
 return
 
@@ -321,6 +325,7 @@ StopPlayBack:
   IsPlaying:=0
   WinShow, %NameText%
   UpdateText("Ctrl_FirstFrame",DoneFrameNum+1)
+  GuiControl,, StopPlayBackButton, Reset (Esc)
 return
 
 FrameAdvance:
@@ -432,20 +437,6 @@ GetStartLineOfFrame(frame){
   local ReadLineNum:=1
   local arguments,i,dashIndex
   return StartLineOfFrame[frame]
-  while (ReadLineNum<=InputFileLines.length()){
-    if (GetCommand(InputFileLines[ReadLineNum])="frame"){
-      arguments:=GetArguments(InputFileLines[ReadLineNum])
-      ,i:=1
-      while (i<=arguments.length()){
-        dashIndex:=InStr(arguments[i],"-")
-        if ((dashIndex!=0&&SubStr(arguments[i],1,dashIndex-1)<=frame&&frame<=SubStr(arguments[i],dashIndex+1))||(dashIndex=0&&arguments[i]=frame))
-          return ReadLineNum
-        i+=1
-      }
-    }
-    ReadLineNum+=1
-  }
-  return 0
 }
 
 GetEndLineOfFrame(frame){
@@ -487,6 +478,9 @@ ExecFrame(frame){
     if (command="mousePos"){
       if (arguments.length()>=2)
         MouseMove, arguments[1]*MouseScale[1]+MouseOffset[1], arguments[2]*MouseScale[2]+MouseOffset[2], 0
+    }else if (command="mousePosR"){
+      if (arguments.length()>=2)
+        MouseMove, arguments[1]*MouseScale[1]+MouseOffset[1], arguments[2]*MouseScale[2]+MouseOffset[2], 0, R
     }else if (command="fps"){
     }else if (command="frame"){
     }else if (command="send"){
