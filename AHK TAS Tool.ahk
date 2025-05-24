@@ -409,53 +409,61 @@ PreprocessStartLineOfFrame(){
   local line, command, arguments
   local ReadLineNum:=1
   local ReadArgumentNum
-  local temp,temp2,dashIndex
+  local temp,dashIndex,frames,lastFrames
   StartLineOfFrame:=[]
+  EndLineOfFrame:=[]
   temp:=1
   while (temp<=TASLength){
     StartLineOfFrame.push(0)
+    EndLineOfFrame.push(-1)
     temp+=1
   }
+  lastFrames:=[]
   while (ReadLineNum<=InputFileLines.length()){
     line:=InputFileLines[ReadLineNum]
     command:=GetCommand(line)
     ,arguments:=GetArguments(line)
     if (command="frame"){
       ReadArgumentNum:=1
+      ,frames:=[]
       while (ReadArgumentNum<=arguments.length()){
         dashIndex:=InStr(arguments[ReadArgumentNum],"-")
         if (dashIndex=0){
           if (StartLineOfFrame[arguments[ReadArgumentNum]]=0)
-            StartLineOfFrame[arguments[ReadArgumentNum]]:=ReadLineNum
+            frames.push(arguments[ReadArgumentNum])
         }else{
           temp:=SubStr(arguments[ReadArgumentNum],1,dashIndex-1)
           while (temp<=SubStr(arguments[ReadArgumentNum],dashIndex+1)){
             if (StartLineOfFrame[temp]=0)
-              StartLineOfFrame[temp]:=ReadLineNum
+              frames.push(temp)
             temp+=1
           }
         }
         ReadArgumentNum+=1
       }
+      temp:=1
+      for temp in frames
+        StartLineOfFrame[frames[temp]]:=ReadLineNum
+      temp:=1
+      for temp in lastFrames
+        EndLineOfFrame[lastFrames[temp]]:=ReadLineNum-1
+      lastFrames:=frames
     }
     ReadLineNum+=1
   }
+  temp:=1
+  for temp in lastFrames
+    EndLineOfFrame[lastFrames[temp]]:=ReadLineNum-1
 }
 
 GetStartLineOfFrame(frame){
-  local ReadLineNum:=1
-  local arguments,i,dashIndex
+  global
   return StartLineOfFrame[frame]
 }
 
 GetEndLineOfFrame(frame){
-  local ReadLineNum:=GetStartLineOfFrame(frame)+1
-  while (ReadLineNum<=InputFileLines.length()){
-    if (GetCommand(InputFileLines[ReadLineNum])="frame")
-      return ReadLineNum-1
-    ReadLineNum+=1
-  }
-  return InputFileLines.length()
+  global
+  return EndLineOfFrame[frame]
 }
 
 GetCommand(line){

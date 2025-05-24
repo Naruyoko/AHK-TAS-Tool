@@ -1,0 +1,6 @@
+fps 60
+coordMode relative
+frame *i:1:1000:2:%i%
+mousePosR -100,0
+frame *i:2:1000:2:%i%
+mousePosR 100,0
